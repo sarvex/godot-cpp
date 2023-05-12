@@ -20,12 +20,12 @@ p = Path(output_dir) / "gen"
 allfiles = [str(f.as_posix()) for f in p.glob("**/*.*")]
 missing = list(filter((lambda f: f not in flist), allfiles))
 extras = list(filter((lambda f: f not in allfiles), flist))
-if len(missing) > 0 or len(extras) > 0:
+if missing or extras:
     print("Error!")
     for f in missing:
-        print("MISSING: " + str(f))
+        print(f"MISSING: {str(f)}")
     for f in extras:
-        print("EXTRA: " + str(f))
+        print(f"EXTRA: {str(f)}")
     sys.exit(1)
 else:
     print("OK!")

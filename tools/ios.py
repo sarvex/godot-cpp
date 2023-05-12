@@ -52,14 +52,14 @@ def generate(env):
                 )
             except (subprocess.CalledProcessError, OSError):
                 raise ValueError(
-                    "Failed to find SDK path while running xcrun --sdk {} --show-sdk-path.".format(sdk_name)
+                    f"Failed to find SDK path while running xcrun --sdk {sdk_name} --show-sdk-path."
                 )
 
         compiler_path = env["IOS_TOOLCHAIN_PATH"] + "/usr/bin/"
-        env["CC"] = compiler_path + "clang"
-        env["CXX"] = compiler_path + "clang++"
-        env["AR"] = compiler_path + "ar"
-        env["RANLIB"] = compiler_path + "ranlib"
+        env["CC"] = f"{compiler_path}clang"
+        env["CXX"] = f"{compiler_path}clang++"
+        env["AR"] = f"{compiler_path}ar"
+        env["RANLIB"] = f"{compiler_path}ranlib"
         env["SHLIBSUFFIX"] = ".dylib"
         env["ENV"]["PATH"] = env["IOS_TOOLCHAIN_PATH"] + "/Developer/usr/bin/:" + env["ENV"]["PATH"]
 

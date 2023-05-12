@@ -12,8 +12,8 @@ EnsureSConsVersion(4, 0)
 
 def add_sources(sources, dir, extension):
     for f in os.listdir(dir):
-        if f.endswith("." + extension):
-            sources.append(dir + "/" + f)
+        if f.endswith(f".{extension}"):
+            sources.append(f"{dir}/{f}")
 
 
 def normalize_path(val):
@@ -22,12 +22,12 @@ def normalize_path(val):
 
 def validate_api_file(key, val, env):
     if not os.path.isfile(normalize_path(val)):
-        raise UserError("GDExtension API file ('%s') does not exist: %s" % (key, val))
+        raise UserError(f"GDExtension API file ('{key}') does not exist: {val}")
 
 
 def validate_gdextension_dir(key, val, env):
     if not os.path.isdir(normalize_path(val)):
-        raise UserError("GDExtension directory ('%s') does not exist: %s" % (key, val))
+        raise UserError(f"GDExtension directory ('{key}') does not exist: {val}")
 
 
 def get_gdextension_dir(env):
@@ -44,7 +44,7 @@ if sys.platform.startswith("linux"):
     default_platform = "linux"
 elif sys.platform == "darwin":
     default_platform = "macos"
-elif sys.platform == "win32" or sys.platform == "msys":
+elif sys.platform in ["win32", "msys"]:
     default_platform = "windows"
 elif ARGUMENTS.get("platform", ""):
     default_platform = ARGUMENTS.get("platform")
@@ -75,12 +75,11 @@ if env.GetOption("num_jobs") == altered_num_jobs:
 
 # Custom options and profile flags.
 customs = ["custom.py"]
-profile = ARGUMENTS.get("profile", "")
-if profile:
+if profile := ARGUMENTS.get("profile", ""):
     if os.path.isfile(profile):
         customs.append(profile)
-    elif os.path.isfile(profile + ".py"):
-        customs.append(profile + ".py")
+    elif os.path.isfile(f"{profile}.py"):
+        customs.append(f"{profile}.py")
 opts = Variables(customs, ARGUMENTS)
 
 platforms = ("linux", "macos", "windows", "android", "ios", "javascript")
@@ -172,13 +171,13 @@ if env["arch"] == "":
         host_machine = platform.machine().lower()
         if host_machine in architecture_array:
             env["arch"] = host_machine
-        elif host_machine in architecture_aliases.keys():
+        elif host_machine in architecture_aliases:
             env["arch"] = architecture_aliases[host_machine]
         elif "86" in host_machine:
             # Catches x86, i386, i486, i586, i686, etc.
             env["arch"] = "x86_32"
         else:
-            print("Unsupported CPU architecture: " + host_machine)
+            print(f"Unsupported CPU architecture: {host_machine}")
             Exit()
 
 tool = Tool(env["platform"], toolpath=["tools"])
@@ -189,12 +188,10 @@ if tool is None or not tool.exists(env):
 tool.generate(env)
 target_tool.generate(env)
 
-# Detect and print a warning listing unknown SCons variables to ease troubleshooting.
-unknown = opts.UnknownVariables()
-if unknown:
+if unknown := opts.UnknownVariables():
     print("WARNING: Unknown SCons variables were passed and will be ignored:")
     for item in unknown.items():
-        print("    " + item[0] + "=" + item[1])
+        print(f"    {item[0]}={item[1]}")
 
 print("Building for architecture " + env["arch"] + " on platform " + env["platform"])
 
@@ -236,7 +233,7 @@ add_sources(sources, "src/core", "cpp")
 add_sources(sources, "src/variant", "cpp")
 sources.extend([f for f in bindings if str(f).endswith(".cpp")])
 
-suffix = ".{}.{}".format(env["platform"], env["target"])
+suffix = f'.{env["platform"]}.{env["target"]}'
 if env.dev_build:
     suffix += ".dev"
 if env["precision"] == "double":
@@ -250,10 +247,12 @@ env["suffix"] = suffix
 
 library = None
 env["OBJSUFFIX"] = suffix + env["OBJSUFFIX"]
-library_name = "libgodot-cpp{}{}".format(suffix, env["LIBSUFFIX"])
+library_name = f'libgodot-cpp{suffix}{env["LIBSUFFIX"]}'
 
 if env["build_library"]:
-    library = env.StaticLibrary(target=env.File("bin/%s" % library_name), source=sources)
+    library = env.StaticLibrary(
+        target=env.File(f"bin/{library_name}"), source=sources
+    )
     Default(library)
 
 env.Append(LIBPATH=[env.Dir("bin")])

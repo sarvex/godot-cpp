@@ -11,10 +11,10 @@ def exists(env):
 
 def generate(env):
     compiler_path = "$IOS_TOOLCHAIN_PATH/usr/bin/${ios_triple}"
-    env["CC"] = compiler_path + "clang"
-    env["CXX"] = compiler_path + "clang++"
-    env["AR"] = compiler_path + "ar"
-    env["RANLIB"] = compiler_path + "ranlib"
+    env["CC"] = f"{compiler_path}clang"
+    env["CXX"] = f"{compiler_path}clang++"
+    env["AR"] = f"{compiler_path}ar"
+    env["RANLIB"] = f"{compiler_path}ranlib"
     env["SHLIBSUFFIX"] = ".dylib"
 
     env.Prepend(

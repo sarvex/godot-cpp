@@ -37,7 +37,7 @@ def generate(env):
             env["CC"] = "clang-cl"
             env["CXX"] = "clang-cl"
 
-    elif sys.platform == "win32" or sys.platform == "msys":
+    elif sys.platform in ["win32", "msys"]:
         env["use_mingw"] = True
         mingw.generate(env)
         # Don't want lib prefixes
@@ -52,11 +52,11 @@ def generate(env):
         env["use_mingw"] = True
         # Cross-compilation using MinGW
         prefix = "i686" if env["arch"] == "x86_32" else env["arch"]
-        env["CXX"] = prefix + "-w64-mingw32-g++"
-        env["CC"] = prefix + "-w64-mingw32-gcc"
-        env["AR"] = prefix + "-w64-mingw32-ar"
-        env["RANLIB"] = prefix + "-w64-mingw32-ranlib"
-        env["LINK"] = prefix + "-w64-mingw32-g++"
+        env["CXX"] = f"{prefix}-w64-mingw32-g++"
+        env["CC"] = f"{prefix}-w64-mingw32-gcc"
+        env["AR"] = f"{prefix}-w64-mingw32-ar"
+        env["RANLIB"] = f"{prefix}-w64-mingw32-ranlib"
+        env["LINK"] = f"{prefix}-w64-mingw32-g++"
         # Want dll suffix
         env["SHLIBSUFFIX"] = ".dll"
 

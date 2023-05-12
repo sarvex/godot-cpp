@@ -10,10 +10,7 @@ def get_cmdline_bool(option, default):
     and SCons' _text2bool helper to convert them to booleans, otherwise they're handled as strings.
     """
     cmdline_val = ARGUMENTS.get(option)
-    if cmdline_val is not None:
-        return _text2bool(cmdline_val)
-    else:
-        return default
+    return _text2bool(cmdline_val) if cmdline_val is not None else default
 
 
 def options(opts):
@@ -60,14 +57,14 @@ def generate(env):
             env.Append(CCFLAGS=["/Zi", "/FS"])
             env.Append(LINKFLAGS=["/DEBUG:FULL"])
 
-        if env["optimize"] == "speed" or env["optimize"] == "speed_trace":
+        if env["optimize"] in ["speed", "speed_trace"]:
             env.Append(CCFLAGS=["/O2"])
             env.Append(LINKFLAGS=["/OPT:REF"])
         elif env["optimize"] == "size":
             env.Append(CCFLAGS=["/O1"])
             env.Append(LINKFLAGS=["/OPT:REF"])
 
-        if env["optimize"] == "debug" or env["optimize"] == "none":
+        if env["optimize"] in ["debug", "none"]:
             env.Append(CCFLAGS=["/MDd", "/Od"])
         else:
             env.Append(CCFLAGS=["/MD"])

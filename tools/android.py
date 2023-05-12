@@ -31,7 +31,7 @@ def generate(env):
         print("Only arm64, x86_64, arm32, and x86_32 are supported on Android. Exiting.")
         Exit()
 
-    if sys.platform == "win32" or sys.platform == "msys":
+    if sys.platform in ["win32", "msys"]:
         my_spawn.configure(env)
 
     # Validate API level
@@ -43,7 +43,7 @@ def generate(env):
 
     # Setup toolchain
     toolchain = env["ANDROID_NDK_ROOT"] + "/toolchains/llvm/prebuilt/"
-    if sys.platform == "win32" or sys.platform == "msys":
+    if sys.platform in ["win32", "msys"]:
         toolchain += "windows"
         import platform as pltfm
 
@@ -54,7 +54,7 @@ def generate(env):
     elif sys.platform == "darwin":
         toolchain += "darwin-x86_64"
         env.Append(LINKFLAGS=["-shared"])
-    env.PrependENVPath("PATH", toolchain + "/bin")  # This does nothing half of the time, but we'll put it here anyways
+    env.PrependENVPath("PATH", f"{toolchain}/bin")
 
     # Get architecture info
     arch_info_table = {
@@ -86,13 +86,13 @@ def generate(env):
     arch_info = arch_info_table[env["arch"]]
 
     # Setup tools
-    env["CC"] = toolchain + "/bin/clang"
-    env["CXX"] = toolchain + "/bin/clang++"
-    env["LINK"] = toolchain + "/bin/clang++"
-    env["AR"] = toolchain + "/bin/llvm-ar"
-    env["AS"] = toolchain + "/bin/llvm-as"
-    env["STRIP"] = toolchain + "/bin/llvm-strip"
-    env["RANLIB"] = toolchain + "/bin/llvm-ranlib"
+    env["CC"] = f"{toolchain}/bin/clang"
+    env["CXX"] = f"{toolchain}/bin/clang++"
+    env["LINK"] = f"{toolchain}/bin/clang++"
+    env["AR"] = f"{toolchain}/bin/llvm-ar"
+    env["AS"] = f"{toolchain}/bin/llvm-as"
+    env["STRIP"] = f"{toolchain}/bin/llvm-strip"
+    env["RANLIB"] = f"{toolchain}/bin/llvm-ranlib"
     env["SHLIBSUFFIX"] = ".so"
 
     env.Append(

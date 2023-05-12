@@ -35,17 +35,11 @@ virtual $RETVAL _##m_name($FUNCARGS) $CONST override; \\
         if i > 0:
             funcargs += ", "
 
-        argtext += ", m_type" + str(i + 1)
-        funcargs += "m_type" + str(i + 1) + " arg" + str(i + 1)
+        argtext += f", m_type{str(i + 1)}"
+        funcargs += f"m_type{str(i + 1)} arg{str(i + 1)}"
 
-    if argcount:
-        s = s.replace("$ARG", argtext)
-        s = s.replace("$FUNCARGS", funcargs)
-    else:
-        s = s.replace("$ARG", "")
-        s = s.replace("$FUNCARGS", funcargs)
-
-    return s
+    s = s.replace("$ARG", argtext) if argcount else s.replace("$ARG", "")
+    return s.replace("$FUNCARGS", funcargs)
 
 
 def generate_wrappers(target):
@@ -72,7 +66,6 @@ def generate_wrappers(target):
 
 def get_file_list(api_filepath, output_dir, headers=False, sources=False):
     api = {}
-    files = []
     with open(api_filepath) as api_file:
         api = json.load(api_file)
 
@@ -80,8 +73,7 @@ def get_file_list(api_filepath, output_dir, headers=False, sources=False):
     include_gen_folder = Path(output_dir) / "gen" / "include" / "godot_cpp"
     source_gen_folder = Path(output_dir) / "gen" / "src"
 
-    files.append(str((core_gen_folder / "ext_wrappers.gen.inc").as_posix()))
-
+    files = [str((core_gen_folder / "ext_wrappers.gen.inc").as_posix())]
     for builtin_class in api["builtin_classes"]:
         if is_pod_type(builtin_class["name"]):
             continue
@@ -111,20 +103,22 @@ def get_file_list(api_filepath, output_dir, headers=False, sources=False):
         struct_name = native_struct["name"]
         snake_struct_name = camel_to_snake(struct_name)
 
-        header_filename = include_gen_folder / "classes" / (snake_struct_name + ".hpp")
+        header_filename = include_gen_folder / "classes" / f"{snake_struct_name}.hpp"
         if headers:
             files.append(str(header_filename.as_posix()))
 
     if headers:
-        for path in [
-            include_gen_folder / "variant" / "builtin_types.hpp",
-            include_gen_folder / "variant" / "builtin_binds.hpp",
-            include_gen_folder / "variant" / "utility_functions.hpp",
-            include_gen_folder / "variant" / "variant_size.hpp",
-            include_gen_folder / "classes" / "global_constants.hpp",
-            include_gen_folder / "classes" / "global_constants_binds.hpp",
-        ]:
-            files.append(str(path.as_posix()))
+        files.extend(
+            str(path.as_posix())
+            for path in [
+                include_gen_folder / "variant" / "builtin_types.hpp",
+                include_gen_folder / "variant" / "builtin_binds.hpp",
+                include_gen_folder / "variant" / "utility_functions.hpp",
+                include_gen_folder / "variant" / "variant_size.hpp",
+                include_gen_folder / "classes" / "global_constants.hpp",
+                include_gen_folder / "classes" / "global_constants_binds.hpp",
+            ]
+        )
     if sources:
         utility_functions_source_path = source_gen_folder / "variant" / "utility_functions.cpp"
         files.append(str(utility_functions_source_path.as_posix()))
@@ -168,11 +162,11 @@ def generate_bindings(api_filepath, use_template_get_node, bits="64", precision=
     target_dir.mkdir(parents=True)
 
     real_t = "double" if precision == "double" else "float"
-    print("Built-in type config: " + real_t + "_" + bits)
+    print(f"Built-in type config: {real_t}_{bits}")
 
     generate_global_constants(api, target_dir)
     generate_global_constant_binds(api, target_dir)
-    generate_builtin_bindings(api, target_dir, real_t + "_" + bits)
+    generate_builtin_bindings(api, target_dir, f"{real_t}_{bits}")
     generate_engine_classes_bindings(api, target_dir, use_template_get_node)
     generate_utility_functions(api, target_dir)
 
@@ -222,11 +216,14 @@ def generate_builtin_bindings(api, output_dir, build_config):
         add_header("variant_size.hpp", variant_size_source)
 
         header_guard = "GODOT_CPP_VARIANT_SIZE_HPP"
-        variant_size_source.append(f"#ifndef {header_guard}")
-        variant_size_source.append(f"#define {header_guard}")
-        variant_size_source.append(f'#define GODOT_CPP_VARIANT_SIZE {builtin_sizes["Variant"]}')
-        variant_size_source.append(f"#endif // ! {header_guard}")
-
+        variant_size_source.extend(
+            (
+                f"#ifndef {header_guard}",
+                f"#define {header_guard}",
+                f'#define GODOT_CPP_VARIANT_SIZE {builtin_sizes["Variant"]}',
+                f"#endif // ! {header_guard}",
+            )
+        )
         variant_size_file.write("\n".join(variant_size_source))
 
     for builtin_api in api["builtin_classes"]:
@@ -265,34 +262,34 @@ def generate_builtin_bindings(api, output_dir, build_config):
                                 fully_used_classes.add(argument["type"])
                             else:
                                 used_classes.add(argument["type"])
-                if "return_type" in method:
-                    if is_included(method["return_type"], class_name):
-                        used_classes.add(method["return_type"])
+                if "return_type" in method and is_included(
+                    method["return_type"], class_name
+                ):
+                    used_classes.add(method["return_type"])
 
         if "members" in builtin_api:
             for member in builtin_api["members"]:
                 if is_included(member["type"], class_name):
                     used_classes.add(member["type"])
 
-        if "indexing_return_type" in builtin_api:
-            if is_included(builtin_api["indexing_return_type"], class_name):
-                used_classes.add(builtin_api["indexing_return_type"])
+        if "indexing_return_type" in builtin_api and is_included(
+            builtin_api["indexing_return_type"], class_name
+        ):
+            used_classes.add(builtin_api["indexing_return_type"])
 
         if "operators" in builtin_api:
             for operator in builtin_api["operators"]:
-                if "right_type" in operator:
-                    if is_included(operator["right_type"], class_name):
-                        used_classes.add(operator["right_type"])
+                if "right_type" in operator and is_included(
+                    operator["right_type"], class_name
+                ):
+                    used_classes.add(operator["right_type"])
 
         for type_name in fully_used_classes:
             if type_name in used_classes:
                 used_classes.remove(type_name)
 
-        used_classes = list(used_classes)
-        used_classes.sort()
-        fully_used_classes = list(fully_used_classes)
-        fully_used_classes.sort()
-
+        used_classes = sorted(used_classes)
+        fully_used_classes = sorted(fully_used_classes)
         with header_filename.open("w+") as header_file:
             header_file.write(generate_builtin_class_header(builtin_api, size, used_classes, fully_used_classes))
 
@@ -305,18 +302,18 @@ def generate_builtin_bindings(api, output_dir, build_config):
         builtin_header = []
         add_header("builtin_types.hpp", builtin_header)
 
-        builtin_header.append("#ifndef GODOT_CPP_BUILTIN_TYPES_HPP")
-        builtin_header.append("#define GODOT_CPP_BUILTIN_TYPES_HPP")
-
-        builtin_header.append("")
-
-        for builtin in builtin_classes:
-            builtin_header.append(f"#include <godot_cpp/variant/{camel_to_snake(builtin)}.hpp>")
-
-        builtin_header.append("")
-
-        builtin_header.append("#endif // ! GODOT_CPP_BUILTIN_TYPES_HPP")
-
+        builtin_header.extend(
+            (
+                "#ifndef GODOT_CPP_BUILTIN_TYPES_HPP",
+                "#define GODOT_CPP_BUILTIN_TYPES_HPP",
+                "",
+            )
+        )
+        builtin_header.extend(
+            f"#include <godot_cpp/variant/{camel_to_snake(builtin)}.hpp>"
+            for builtin in builtin_classes
+        )
+        builtin_header.extend(("", "#endif // ! GODOT_CPP_BUILTIN_TYPES_HPP"))
         builtin_header_file.write("\n".join(builtin_header))
 
     # Create a header with bindings for builtin types.
@@ -325,21 +322,25 @@ def generate_builtin_bindings(api, output_dir, build_config):
         builtin_binds = []
         add_header("builtin_binds.hpp", builtin_binds)
 
-        builtin_binds.append("#ifndef GODOT_CPP_BUILTIN_BINDS_HPP")
-        builtin_binds.append("#define GODOT_CPP_BUILTIN_BINDS_HPP")
-        builtin_binds.append("")
-        builtin_binds.append("#include <godot_cpp/variant/builtin_types.hpp>")
-        builtin_binds.append("")
-
+        builtin_binds.extend(
+            (
+                "#ifndef GODOT_CPP_BUILTIN_BINDS_HPP",
+                "#define GODOT_CPP_BUILTIN_BINDS_HPP",
+                "",
+                "#include <godot_cpp/variant/builtin_types.hpp>",
+                "",
+            )
+        )
         for builtin_api in api["builtin_classes"]:
-            if is_included_type(builtin_api["name"]):
-                if "enums" in builtin_api:
-                    for enum_api in builtin_api["enums"]:
-                        builtin_binds.append(f"VARIANT_ENUM_CAST({builtin_api['name']}::{enum_api['name']});")
-
-        builtin_binds.append("")
-        builtin_binds.append("#endif // ! GODOT_CPP_BUILTIN_BINDS_HPP")
-
+            if (
+                is_included_type(builtin_api["name"])
+                and "enums" in builtin_api
+            ):
+                builtin_binds.extend(
+                    f"VARIANT_ENUM_CAST({builtin_api['name']}::{enum_api['name']});"
+                    for enum_api in builtin_api["enums"]
+                )
+        builtin_binds.extend(("", "#endif // ! GODOT_CPP_BUILTIN_BINDS_HPP"))
         builtin_binds_file.write("\n".join(builtin_binds))
 
 
